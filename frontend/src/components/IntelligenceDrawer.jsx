@@ -29,7 +29,7 @@ export default function IntelligenceDrawer({ node, onClose, onChatUpdate }) {
     setIsChatting(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/chat", {
+      const res = await fetch("https://cartographer-monolith-production.up.railway.app/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
