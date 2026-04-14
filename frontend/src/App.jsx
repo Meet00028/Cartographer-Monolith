@@ -64,7 +64,7 @@ function App() {
 
     setIsGeneratingDocs(true);
     try {
-      const res = await fetch("http://localhost:8000/api/generate-docs", {
+      const res = await fetch("https://cartographer-monolith-production.up.railway.app/api/generate-docs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ summaries }),
