@@ -44,7 +44,7 @@ export default function Cartographer({ nodes: initialNodes, edges: initialEdges,
       }
 
       try {
-        const res = await fetch("https://cartographer-monolith-production.up.railway.app/api/summarize", {
+        const res = await fetch("http://localhost:8001/api/summarize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
