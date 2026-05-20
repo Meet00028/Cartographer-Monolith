@@ -34,7 +34,7 @@ export const getLayoutedElements = (nodes, edges) => {
 
 const IGNORE_LIST = ['node_modules', '.git', '.next', 'dist', 'build', '.venv', '__pycache__'];
 
-export const parseFileList = async (fileList) => {
+export const parseFileList = async (fileList, externalEdges = [], metadata = {}) => {
   const nodes = [];
   const edges = [];
   const folderMap = new Map();
@@ -74,7 +74,7 @@ export const parseFileList = async (fileList) => {
       const partPath = currentPath ? `${currentPath}/${part}` : part;
       
       if (!folderMap.has(partPath)) {
-        const nodeId = `node-${nodes.length}`;
+        const nodeId = partPath; // Use path as ID for dependency mapping
         const isFile = isLast;
         
         let fileContent = '';
@@ -85,8 +85,8 @@ export const parseFileList = async (fileList) => {
           fileContent = await file.text();
           loc = fileContent.split('\n').length;
           
-          if (loc > 300) complexity = 'high';
-          else if (loc > 100) complexity = 'medium';
+          if (loc > 200) complexity = 'high';
+          else if (loc > 50) complexity = 'medium';
         }
 
         nodes.push({
@@ -100,10 +100,26 @@ export const parseFileList = async (fileList) => {
             loc,
             complexity,
             isFolder: !isFile,
-            collapsed: false
+            collapsed: false,
+            childCount: 0,
+            metadata: metadata[nodeId] || null
           },
           position: { x: 0, y: 0 },
         });
+
+        // Update parent's childCount
+        if (parentId !== rootId) {
+          const parentNode = nodes.find(n => n.id === parentId);
+          if (parentNode) {
+            parentNode.data.childCount = (parentNode.data.childCount || 0) + 1;
+          }
+        } else {
+          // rootId is PROJECT_ROOT
+          const rootNode = nodes.find(n => n.id === rootId);
+          if (rootNode) {
+            rootNode.data.childCount = (rootNode.data.childCount || 0) + 1;
+          }
+        }
 
         edges.push({
           id: `edge-${parentId}-${nodeId}`,
@@ -120,13 +136,30 @@ export const parseFileList = async (fileList) => {
     }
   }
 
+  // Add external dependency edges
+  externalEdges.forEach((edge, idx) => {
+    edges.push({
+      id: `dep-edge-${idx}`,
+      source: edge.source,
+      target: edge.target,
+      type: 'custom',
+      data: { type: 'import' },
+      animated: true
+    });
+  });
+
   return getLayoutedElements(nodes, edges);
 };
 
 function getFileType(fileName) {
+  const name = fileName.toLowerCase();
+  if (name.includes('test') || name.includes('spec') || name.includes('__test__')) return 'test';
+  
   const ext = fileName.split('.').pop().toLowerCase();
-  if (['js', 'jsx', 'ts', 'tsx', 'html', 'css'].includes(ext)) return 'frontend';
-  if (['py', 'go', 'rb', 'php', 'java', 'c', 'cpp'].includes(ext)) return 'backend';
-  if (['sql', 'db', 'json', 'yml', 'yaml', 'md'].includes(ext)) return 'database';
+  if (['js', 'jsx', 'ts', 'tsx', 'html', 'vue', 'svelte'].includes(ext)) return 'frontend';
+  if (['py', 'go', 'rb', 'php', 'java', 'rs', 'c', 'cpp'].includes(ext)) return 'backend';
+  if (['css', 'scss', 'sass', 'less'].includes(ext)) return 'style';
+  if (['json', 'yml', 'yaml', 'env', 'toml', 'ini'].includes(ext)) return 'config';
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'ico', 'mp4', 'woff', 'woff2'].includes(ext)) return 'asset';
   return 'default';
 }

@@ -1,9 +1,41 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Download, FileDown, Loader2 } from 'lucide-react';
+import { Activity, Download, FileDown, Loader2, Search, Filter, X, Home, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export default function TopNav({ heatmapActive, onToggleHeatmap, onExport, onGenerateDocs, isGeneratingDocs }) {
+export default function TopNav({ 
+  heatmapActive, 
+  onToggleHeatmap, 
+  onExport, 
+  onGenerateDocs, 
+  isGeneratingDocs,
+  searchQuery,
+  onSearchChange,
+  typeFilters,
+  onFilterChange,
+  layoutMode,
+  onLayoutChange,
+  onHome,
+  onRefresh,
+  onExportPNG
+}) {
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        onSearchChange('');
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onSearchChange]);
+
   return (
     <motion.div 
       initial={{ y: -50, opacity: 0 }}
@@ -11,72 +43,115 @@ export default function TopNav({ heatmapActive, onToggleHeatmap, onExport, onGen
       transition={{ type: 'spring', stiffness: 100, damping: 20, mass: 1.5 }}
       className="absolute top-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-1.5 rounded-sm bg-zinc-950/80 backdrop-blur-2xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
     >
+      <button 
+        onClick={onHome}
+        className="p-3 text-zinc-500 hover:text-white transition-all border border-transparent hover:border-white/10 rounded-sm"
+      >
+        <Home size={16} />
+      </button>
+
+      <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
+
+      {/* Search Input */}
+      <div className="relative flex items-center ml-2 group">
+        <Search className="absolute left-3 w-3.5 h-3.5 text-zinc-500 group-focus-within:text-white transition-colors" />
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="SEARCH NODES (CMD+K)"
+          className="bg-white/5 border border-white/5 focus:border-white/20 rounded-sm pl-10 pr-4 py-2 text-[10px] font-bold tracking-[0.1em] text-white placeholder:text-zinc-600 focus:outline-none w-48 transition-all focus:w-64 uppercase"
+        />
+        {searchQuery && (
+          <button 
+            onClick={() => onSearchChange('')}
+            className="absolute right-2 p-1 text-zinc-500 hover:text-white"
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+
+      <div className="w-[1px] h-6 bg-white/10 mx-2"></div>
+
+      {/* Filter Dropdown (Simplified for now) */}
+      <div className="flex items-center gap-2 px-2">
+        {Object.keys(typeFilters).map((type) => (
+          <button
+            key={type}
+            onClick={() => onFilterChange(type)}
+            className={cn(
+              "px-2 py-1 rounded-sm text-[8px] font-bold tracking-widest uppercase border transition-all",
+              typeFilters[type] 
+                ? "bg-white/10 border-white/20 text-white" 
+                : "bg-transparent border-transparent text-zinc-600 hover:text-zinc-400"
+            )}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
+      <div className="w-[1px] h-6 bg-white/10 mx-2"></div>
+
+      {/* Layout Toggle */}
+      <div className="flex items-center gap-1 px-2">
+        {['tree', 'radial', 'force'].map((mode) => (
+          <button
+            key={mode}
+            onClick={() => onLayoutChange(mode)}
+            className={cn(
+              "px-3 py-1.5 rounded-sm text-[8px] font-bold tracking-widest uppercase border transition-all",
+              layoutMode === mode 
+                ? "bg-white/10 border-white/20 text-white shadow-[0_0_10px_rgba(255,255,255,0.05)]" 
+                : "bg-transparent border-transparent text-zinc-600 hover:text-zinc-400"
+            )}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
+
+      <div className="w-[1px] h-6 bg-white/10 mx-2"></div>
+
       <button
         onClick={onToggleHeatmap}
         className={cn(
-          "flex items-center gap-3 px-5 py-2.5 rounded-sm text-[10px] font-bold tracking-[0.2em] uppercase transition-all duration-500",
-          heatmapActive 
-            ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-white/20" 
-            : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5 border border-transparent"
+          "p-3 rounded-sm border transition-all",
+          heatmapActive ? "bg-red-500/10 border-red-500/50 text-red-500" : "bg-white/5 border-white/10 text-zinc-500 hover:text-white"
         )}
       >
-        <Activity className={cn("w-4 h-4 transition-colors duration-500", heatmapActive && "text-red-500")} />
-        Complexity Heatmap
-      </button>
-      
-      <div className="w-[1px] h-6 bg-white/10 mx-2"></div>
-      
-      <button
-        onClick={onExport}
-        className="flex items-center gap-3 px-5 py-2.5 rounded-sm text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 hover:text-zinc-200 hover:bg-white/5 border border-transparent hover:border-white/10 transition-all duration-500"
-      >
-        <Download className="w-4 h-4" />
-        Export Architecture
+        <Activity size={16} />
       </button>
 
-      <div className="w-[1px] h-6 bg-white/10 mx-2"></div>
+      <button
+        onClick={onRefresh}
+        className="p-3 bg-white/5 border border-white/10 text-zinc-500 hover:text-white transition-all rounded-sm"
+      >
+        <RotateCcw size={16} />
+      </button>
+
+      <button
+        onClick={onExportPNG}
+        className="p-3 bg-white/5 border border-white/10 text-zinc-500 hover:text-white transition-all rounded-sm"
+      >
+        <ImageIcon size={16} />
+      </button>
+
+      <button
+        onClick={onExport}
+        className="p-3 bg-white/5 border border-white/10 text-zinc-500 hover:text-white transition-all rounded-sm"
+      >
+        <Download size={16} />
+      </button>
 
       <button
         onClick={onGenerateDocs}
         disabled={isGeneratingDocs}
-        className={cn(
-          "relative flex items-center gap-3 px-5 py-2.5 rounded-sm text-[10px] font-bold tracking-[0.2em] uppercase transition-all duration-500 overflow-hidden group",
-          isGeneratingDocs 
-            ? "text-white bg-white/5" 
-            : "text-zinc-500 hover:text-white hover:bg-white/5"
-        )}
+        className="p-3 bg-white/5 border border-white/10 text-zinc-500 hover:text-white transition-all rounded-sm disabled:opacity-50"
       >
-        {/* Glow effect */}
-        <div className="absolute inset-0 border border-white/0 group-hover:border-white/10 transition-all duration-500" />
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[0_0_15px_rgba(255,255,255,0.05)]" />
-        
-        <AnimatePresence mode="wait">
-          {isGeneratingDocs ? (
-            <motion.div
-              key="generating"
-              layoutId="button-content"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-center gap-3"
-            >
-              <Loader2 className="w-4 h-4 animate-spin text-white" />
-              <span>Generating...</span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="download"
-              layoutId="button-content"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-center gap-3"
-            >
-              <FileDown className="w-4 h-4" />
-              <span>Download ARCHITECTURE.md</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {isGeneratingDocs ? <Loader2 className="animate-spin" size={16} /> : <FileDown size={16} />}
       </button>
     </motion.div>
   );
